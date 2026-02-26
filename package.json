@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-translate",
+  "version": "1.0.0",
+  "description": "AI-powered translation plugin with floating popover for Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "dev": "esbuild main.ts --bundle --watch --outfile=main.js --external:obsidian --format=cjs --platform=node",
+    "build": "esbuild main.ts --bundle --outfile=main.js --external:obsidian --format=cjs --platform=node --minify"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "esbuild": "^0.19.8",
+    "obsidian": "^1.4.0",
+    "typescript": "^5.3.0"
+  }
+}

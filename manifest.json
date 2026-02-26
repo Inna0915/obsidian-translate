@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-translate",
+  "name": "AI Translate",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "AI-powered translation plugin with floating popover",
+  "author": "Your Name",
+  "isDesktopOnly": false
+}
