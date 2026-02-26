@@ -23,7 +23,7 @@ export function createDefaultSettings(): TranslateSettings {
     return {
         models: getBuiltinModels(),
         defaultModel: 'openai:gpt-4o',
-        targetLanguage: 'Chinese',
+        targetLanguage: 'English',
         languageOptions: ['Chinese', 'English'],
         history: [],
         maxHistorySize: 50,
@@ -108,7 +108,7 @@ export class Translator {
     /**
      * Translate text. Supports overriding target language.
      */
-    async translate(text: string, modelId?: string, targetLang?: string): Promise<string> {
+    async translate(text: string, modelId?: string, targetLang?: string, sourceLang?: string): Promise<string> {
         const id = modelId || this.settings.defaultModel;
         const model = this.settings.models.find(m => m.id === id);
         if (!model) throw new Error(`Model "${id}" not found`);
@@ -129,14 +129,14 @@ export class Translator {
         }
 
         const lang = targetLang || this.settings.targetLanguage;
-        logger.info(`Translating with ${model.displayName} (${providerDef.name}) -> ${lang}`);
+        logger.info(`Translating with ${model.displayName} (${providerDef.name})${sourceLang ? ' from ' + sourceLang : ''} -> ${lang}`);
 
         let translatedText: string;
         try {
             if (providerDef.apiFormat === 'anthropic') {
-                translatedText = await this.callAnthropic(text, model, apiKey, baseUrl, lang);
+                translatedText = await this.callAnthropic(text, model, apiKey, baseUrl, lang, sourceLang);
             } else {
-                translatedText = await this.callOpenAI(text, model, apiKey, baseUrl, lang);
+                translatedText = await this.callOpenAI(text, model, apiKey, baseUrl, lang, sourceLang);
             }
         } catch (error: any) {
             const msg = error?.message || String(error);
@@ -181,11 +181,12 @@ export class Translator {
     // ------ OpenAI-compatible API ------
 
     private async callOpenAI(
-        text: string, model: ModelConfig, apiKey: string, baseUrl: string, targetLang: string,
+        text: string, model: ModelConfig, apiKey: string, baseUrl: string, targetLang: string, sourceLang?: string,
     ): Promise<string> {
         const url = `${baseUrl}/chat/completions`;
 
-        const defaultPrompt = `You are a professional translator. Translate the following text to ${targetLang}. Only return the translation, nothing else.`;
+        const sourceInfo = sourceLang ? `from ${sourceLang} ` : '';
+        const defaultPrompt = `You are a professional translator. Translate the following text ${sourceInfo}to ${targetLang}. Only return the translation, nothing else.`;
         const systemPrompt = model.customPrompt?.trim() || defaultPrompt;
 
         // Some models (e.g. qwen-mt-turbo) only support user/assistant roles
@@ -220,11 +221,12 @@ export class Translator {
     // ------ Anthropic API ------
 
     private async callAnthropic(
-        text: string, model: ModelConfig, apiKey: string, baseUrl: string, targetLang: string,
+        text: string, model: ModelConfig, apiKey: string, baseUrl: string, targetLang: string, sourceLang?: string,
     ): Promise<string> {
         const url = `${baseUrl}/messages`;
 
-        const defaultPrompt = `Translate the following text to ${targetLang}. Only return the translation, nothing else:\n\n${text}`;
+        const sourceInfo = sourceLang ? `from ${sourceLang} ` : '';
+        const defaultPrompt = `Translate the following text ${sourceInfo}to ${targetLang}. Only return the translation, nothing else:\n\n${text}`;
         const userContent = model.customPrompt?.trim()
             ? `${model.customPrompt.trim()}\n\n${text}`
             : defaultPrompt;

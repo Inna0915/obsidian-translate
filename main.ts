@@ -239,7 +239,9 @@ export default class TranslatePlugin extends Plugin {
         }
 
         this.translator = new Translator(this.settings);
-        this.popover = new TranslatePopover(this.app, this.translator);
+        this.popover = new TranslatePopover(this.app, this.translator, async () => {
+            await this.saveData(this.settings);
+        });
 
         // Right-click context menu: inject "Translate" item
         this.registerEvent(
@@ -250,47 +252,40 @@ export default class TranslatePlugin extends Plugin {
                 menu.addItem((item) => {
                     item.setTitle('AI 翻译')
                         .setIcon('languages')
-                        .onClick(async (evt: MouseEvent | KeyboardEvent) => {
-                            const mouseEvt = evt instanceof MouseEvent ? evt : null;
-                            const x = mouseEvt?.clientX ?? 200;
-                            const y = mouseEvt?.clientY ?? 200;
-                            await this.popover.show(x, y, sel.trim());
+                        .onClick(async () => {
+                            await this.popover.show(sel.trim());
                         });
                 });
             })
         );
 
-        // Command (hotkey)
+        // Command: translate selection (or open empty window)
         this.addCommand({
             id: 'translate-selection',
             name: 'Translate selected text',
             hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 't' }],
             editorCallback: async (editor: Editor) => {
                 const sel = editor.getSelection();
-                if (sel && sel.trim().length > 0) {
-                    // Show near center of viewport
-                    await this.popover.show(
-                        window.innerWidth / 2 - 150,
-                        window.innerHeight / 3,
-                        sel.trim(),
-                    );
-                }
+                await this.popover.show(sel?.trim() || undefined);
+            },
+        });
+
+        // Command: open translate window (always works, no editor required)
+        this.addCommand({
+            id: 'open-translate',
+            name: 'Open AI Translate',
+            callback: async () => {
+                const active = this.app.workspace.activeEditor;
+                const sel = active?.editor?.getSelection();
+                await this.popover.show(sel?.trim() || undefined);
             },
         });
 
         // Ribbon icon
         this.addRibbonIcon('languages', 'AI Translate', async () => {
             const active = this.app.workspace.activeEditor;
-            if (active?.editor) {
-                const sel = active.editor.getSelection();
-                if (sel && sel.trim().length > 0) {
-                    await this.popover.show(
-                        window.innerWidth / 2 - 150,
-                        window.innerHeight / 3,
-                        sel.trim(),
-                    );
-                }
-            }
+            const sel = active?.editor?.getSelection();
+            await this.popover.show(sel?.trim() || undefined);
         });
 
         // Settings tab
